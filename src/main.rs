@@ -8,10 +8,12 @@ mod mmio;
 mod io;
 mod rand;
 mod delay;
+mod fb;
 mod mailbox;
 use io::serial;
 use core::panic::PanicInfo;
 use numtoa::NumToA;
+use mailbox::Message;
 
 #[macro_export]
 macro_rules! nop {
@@ -44,6 +46,15 @@ pub extern "C" fn main() -> ! {
         serial::write_hex(serial_number);
     } else {
         serial::writeln("BRUH");
+    }
+
+    let req = fb::FrameBufferRequest::new(1024, 768);
+    if let Ok(buff) = req.call(mailbox::Channel::Prop) {
+        serial::writeln("Got Framebuffer!");
+        serial::write_hex(buff.buffer as *const u32 as u64);
+    } else {
+        serial::writeln("Could not get framebuffer!");
+        panic!("Could not get framebuffer");
     }
 
     serial::write("Exception level: ");
