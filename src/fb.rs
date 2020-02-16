@@ -1,4 +1,5 @@
 use crate::*;
+use io::*;
 use core::intrinsics::transmute;
 
 pub struct FrameBuffer {
@@ -59,8 +60,7 @@ impl FrameBuffer {
     }
 
     pub fn render(&self) {
-        serial::writeln("Is rgb?");
-        serial::write_hex(self.is_rgb.into());
+        println!("Is rgb? {}", self.is_rgb);
         for x in 0..self.width {
             for y in 0..self.height {
                 self.set_pixel(x, y, Color::new(0, 0, 0, 100));
@@ -155,8 +155,7 @@ impl mailbox::Message for FrameBufferRequest {
 
 #[test_case]
 fn test_get_frame_buffer() {
-    use crate::io::serial;
-    serial::writeln("Testing get FrameBuffer");
+    println!("Testing get FrameBuffer");
     assert!(
         FrameBufferRequest::new(1080, 720)
             .call(mailbox::Channel::Prop)

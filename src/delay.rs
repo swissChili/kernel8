@@ -1,5 +1,4 @@
-use crate::io::serial;
-use crate::mmio;
+use crate::*;
 
 const TIMER_BASE: u32 = 0x7E003000;
 const TIMER_LOW: u32 = TIMER_BASE + 0x4;
@@ -35,14 +34,14 @@ pub fn wait_msec(n: u32) {
     }
 
     count += ((freq / 1000) * n) / 1000;
-    serial::write_hex(count.into());
+    println!("{}", count);
     
     // do...while loops aren't a thing for some reason
     while {
         unsafe {
             asm!("mrs $0, cntpct_el0" : "=r"(real));
         }
-        serial::write_hex(real.into());
+        println!("{}", real);
         wait_cycles(10000000);
 
         real < count

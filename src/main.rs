@@ -1,12 +1,14 @@
 #![no_std]
 #![no_main]
 #![feature(core_intrinsics, lang_items, asm, custom_test_frameworks)]
+#![feature(panic_info_message)]
 #![test_runner(crate::test::runner)]
 #![reexport_test_harness_main = "test_main"]
 
 extern crate numtoa;
 
 mod mmio;
+#[macro_use]
 mod io;
 mod rand;
 mod delay;
@@ -14,6 +16,7 @@ mod fb;
 mod mailbox;
 mod test;
 use io::serial;
+use core::fmt::Write;
 use core::panic::PanicInfo;
 use numtoa::NumToA;
 use mailbox::Message;
@@ -24,10 +27,12 @@ macro_rules! nop {
 }
 
 #[panic_handler]
-fn panic(_info: &PanicInfo) -> ! {
-    serial::writeln("Kernel Panic:");
-    loop {
+fn panic(info: &PanicInfo) -> ! {
+    println!("Kernel Panic:\n\t{}", info.message().expect("Unknown"));
+    if let Some(loc) = info.location() {
+        println!("\tIn file {}:{}:{}", loc.file(), loc.line(), loc.column());
     }
+    loop { }
 }
 
 pub fn get_el() -> u64 {
@@ -44,34 +49,30 @@ pub extern "C" fn main() -> ! {
         loop { }
     }
 
-    serial::writeln("Kernel8");
+    println!("Kernel8");
     let rand = rand::Rand::new();
     let mut buffer: [u8; 4] = [0; 4];
 
     delay::wait_msec(300);
 
-    serial::writeln("Serial Number is:");
+    println!("Serial Number is:");
     if let Ok(serial_number) = mailbox::get_serial() {
-        serial::write_hex(serial_number);
+        println!("{}", serial_number);
     } else {
-        serial::writeln("BRUH");
+        println!("Could not get serial number");
+        panic!();
     }
 
     let req = fb::FrameBufferRequest::new(1024, 768);
     let buff = req.call(mailbox::Channel::Prop).unwrap();
 
-    serial::write("Exception level: ");
-    serial::writeln(get_el().numtoa_str(10, &mut buffer));
-    serial::writeln("Press any key to get a random number");
+    println!("Exception level: {}", get_el());
+    println!("Press any key to get a random number");
 
     loop {
         let c = serial::getc();
-        serial::write("'");
-        serial::writec(c);
-        serial::write("'");
-        serial::writeln(rand.range(0, 999).numtoa_str(10, &mut buffer));
-        //serial::write_hex(delay::get_sys_time());
-
+        println!("'{}'", c);
+        println!("{}", rand.range(0, 100));
         buff.render()
     }
 }

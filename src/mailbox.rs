@@ -69,7 +69,10 @@ pub trait Message {
 
             if address == mmio::read(READ) {
                 if b[1] == RESPONSE {
-                    serial::write("Got Response: ");
+                    // If this is changed to println! a kernel panic occurs
+                    // I don't know why so I won't touch it.
+                    // TODO: Fix this.
+                    serial::writeln("Got Response: ");
                     return self.get_result(*b);
                 }
                 else { return Err(()); }
@@ -126,7 +129,7 @@ pub enum Tag {
 fn test_get_serial() {
     use crate::io::serial;
 
-    serial::writeln("Testing: get_serial() is Ok");
+    println!("Testing: get_serial() is Ok");
 
     assert!(get_serial().is_ok());
 }

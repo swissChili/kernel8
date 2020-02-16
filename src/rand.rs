@@ -1,4 +1,4 @@
-use crate::mmio;
+use crate::*;
 
 const CTRL: u32 = mmio::BASE + 0x00104000;
 const STATUS: u32 = mmio::BASE + 0x00104004;
@@ -27,13 +27,13 @@ impl Rand {
 
 #[test_case]
 fn test_rand() {
+    #[macro_use]
     use crate::io::serial;
 
-    serial::writeln("Testing Rand::range(2, 3) > 1");
+    println!("Testing Rand::range(2, 3) > 1");
 
     let rand = Rand::new();
     let res = rand.range(2, 3);
-    serial::write("Got: ");
-    serial::write_hex(res.into());
+    println!("Got: {}", res);
     assert!(res > 1);
 }
