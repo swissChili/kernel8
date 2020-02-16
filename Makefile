@@ -18,7 +18,7 @@ clean:
 	rm -rf target kernel8 kernel8.img
 
 qemu: kernel8.img
-	qemu-system-aarch64 -M raspi3 -kernel $^ -serial stdio -display none
+	qemu-system-aarch64 -M raspi3 -kernel $^ -serial stdio
 
 nm:
 	cargo nm --target $(target) -- --print-size $^ | sort
