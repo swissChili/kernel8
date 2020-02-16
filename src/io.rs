@@ -57,10 +57,10 @@ pub mod serial {
 
     #[macro_export]
     macro_rules! println {
-        () => ($crate::print!("\n"));
-        ($($arg:tt)*) => (
+        () => ({$crate::print!("\n")});
+        ($($arg:tt)*) => ({
             $crate::print!("{}\n", format_args!($($arg)*))
-        );
+        });
     }
 
     pub fn _print(args: fmt::Arguments) {

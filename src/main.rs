@@ -20,6 +20,7 @@ use core::fmt::Write;
 use core::panic::PanicInfo;
 use numtoa::NumToA;
 use mailbox::Message;
+use fb::Color;
 
 #[macro_export]
 macro_rules! nop {
@@ -51,17 +52,16 @@ pub extern "C" fn main() -> ! {
 
     println!("Kernel8");
     let rand = rand::Rand::new();
-    let mut buffer: [u8; 4] = [0; 4];
 
     delay::wait_msec(300);
 
-    println!("Serial Number is:");
+    /*println!("Serial Number is:");
     if let Ok(serial_number) = mailbox::get_serial() {
         println!("{}", serial_number);
     } else {
         println!("Could not get serial number");
         panic!();
-    }
+    }*/
 
     let req = fb::FrameBufferRequest::new(1024, 768);
     let buff = req.call(mailbox::Channel::Prop).unwrap();
@@ -71,9 +71,10 @@ pub extern "C" fn main() -> ! {
 
     loop {
         let c = serial::getc();
-        println!("'{}'", c);
-        println!("{}", rand.range(0, 100));
-        buff.render()
+        //println!("'{}'", c);
+        //println!("{}", rand.range(0, 100));
+        //buff.char_at(0, 0, c)
+        buff.set_pixel(rand.range(0, 100), rand.range(0, 100), Color::white());
     }
 }
 
@@ -81,4 +82,11 @@ pub extern "C" fn main() -> ! {
 #[no_mangle]
 pub extern fn _Unwind_Resume() {
     loop {}
+}
+
+#[test_case]
+fn test_get_el() {
+    println!("Testing: get_el() == 3");
+
+    assert!(get_el() == 2);
 }

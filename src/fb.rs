@@ -2,6 +2,66 @@ use crate::*;
 use io::*;
 use core::intrinsics::transmute;
 
+// Exported by font.o
+extern "C" {
+    #[no_mangle]
+    pub static mut _binary_src_font_psf_start: u8;
+}
+
+#[repr(packed)]
+#[derive(Copy, Clone, Debug)]
+pub struct PSFHeader {
+    pub magic: u32,
+    pub version: u32,
+    pub header_size: u32,
+    pub flags: u32,
+    pub num_glyph: u32,
+    pub bytes_per_glyph: u32,
+    pub height: u32,
+    pub width: u32,
+    pub glyphs: u8,
+}
+
+#[derive(Debug)]
+pub struct ScreenFont {
+    pub header: PSFHeader,
+    pub start: *mut u8,
+}
+
+impl ScreenFont {
+    pub fn new(from: *mut u8) -> Self {
+        unsafe {
+            let header = *(from as *mut PSFHeader);
+            Self {
+                header,
+                start: (from as usize + header.header_size as usize)
+                    as *mut u8,
+            }
+        }
+    }
+
+    pub fn glyph(&self, glyph: u8) -> *mut u8 {
+        (self.start as usize +
+            (glyph as usize) *
+            self.header.bytes_per_glyph as usize)
+            as *mut u8
+    }
+
+    pub fn debug_glyph(&self, c: u8) {
+        let mut glyph = self.glyph(c);
+        for i in 0 .. self.header.height {
+            for j in 0 .. self.header.width {
+                print!("{}",
+                    if unsafe {*glyph} & (0b1000_0000 >> j) > 0 {"#"} else {" "}
+                );
+            }
+            println!();
+            glyph = (glyph as usize + self.header.width as usize / 8) as *mut u8;
+        }
+    }
+}
+
+#[derive(Debug)]
 pub struct FrameBuffer {
     pub buffer: *mut u32,
     pub width: u32,
@@ -10,6 +70,7 @@ pub struct FrameBuffer {
     pub real_height: u32,
     pub pitch: u32,
     pub is_rgb: u32,
+    pub font: ScreenFont,
 }
 
 fn cap(num: u32, low: u32, high: u32) -> u32 {
@@ -30,6 +91,7 @@ pub struct Color {
     pub a: u8,
 }
 
+#[allow(unused)]
 impl Color {
     pub fn new(r: u8, g: u8, b: u8, a: u8) -> Self {
         Self {
@@ -39,6 +101,14 @@ impl Color {
 
     pub fn red() -> Self {
         return Self::new(255, 0, 0, 255);
+    }
+
+    pub fn white() -> Self {
+        Self::new(0, 0, 0, 255)
+    }
+    
+    pub fn black() -> Self {
+        Self::new(0, 0, 0, 0)
     }
 }
 
@@ -52,19 +122,28 @@ impl Into<u32> for Color {
 }
 
 impl FrameBuffer {
-    fn set_pixel(&self, x: u32, y: u32, color: Color) {
+    pub fn set_pixel(&self, x: u32, y: u32, color: Color) {
         unsafe {
             *((self.buffer as u64 + (y * self.width + x) as u64)
                 as *mut u32) = color.into();
         }
     }
 
-    pub fn render(&self) {
-        println!("Is rgb? {}", self.is_rgb);
-        for x in 0..self.width {
-            for y in 0..self.height {
-                self.set_pixel(x, y, Color::new(0, 0, 0, 100));
+    pub fn char_at(&self, x: u32, y: u32, c: u8) {
+        let mut glyph = self.font.glyph(c);
+        let header = self.font.header;
+
+        for i in 0 .. header.height {
+            for j in 0 .. header.width {
+                self.set_pixel(x + j, y + i,
+                    if unsafe {*glyph} & (0b1000_0000 >> j) > 0 {
+                        Color::white()
+                    } else {
+                        Color::black()
+                    }
+                );
             }
+            glyph = (glyph as usize + header.width as usize / 8) as *mut u8;
         }
     }
 }
@@ -105,8 +184,8 @@ impl mailbox::Message for FrameBufferRequest {
             0x48009,
             8,
             8,
-            0,
-            0,
+            0, // x offset
+            0, // y offset
 
             0x48005, // depth
             4,
@@ -146,6 +225,12 @@ impl mailbox::Message for FrameBufferRequest {
                 buffer: unsafe {
                     transmute((data[28] & 0x3FFFFFFF) as u64)
                 },
+                font: unsafe {
+                    ScreenFont::new(
+                        &mut _binary_src_font_psf_start
+                        as *mut u8
+                    )
+                },
             });
         }
         Err(())
@@ -156,8 +241,12 @@ impl mailbox::Message for FrameBufferRequest {
 #[test_case]
 fn test_get_frame_buffer() {
     println!("Testing get FrameBuffer");
-    assert!(
-        FrameBufferRequest::new(1080, 720)
-            .call(mailbox::Channel::Prop)
-            .is_ok());
+    let req = FrameBufferRequest::new(1080, 720);
+    if let Ok(buff) = req.call(mailbox::Channel::Prop) {
+        println!("Got FrameBuffer, rendering");
+        buff.render();
+    } else {
+        println!("Could not get FrameBuffer");
+        panic!("Could not get FrameBuffer");
+    }
 }

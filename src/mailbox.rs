@@ -127,8 +127,6 @@ pub enum Tag {
 
 #[test_case]
 fn test_get_serial() {
-    use crate::io::serial;
-
     println!("Testing: get_serial() is Ok");
 
     assert!(get_serial().is_ok());

@@ -4,6 +4,7 @@ target = "aarch64-unknown-none-softfloat"
 [target.aarch64-unknown-none-softfloat]
 rustflags = [
     "-C", "link-arg=-Tlink.ld",
-    "-C", "link-arg=target/start.o"
+    "-C", "link-arg=target/start.o",
+    "-C", "link-arg=target/font.o"
 ]
-runner = "qemu-system-aarch64 -M raspi3 -serial stdio -display none -kernel"
+runner = "qemu-system-aarch64 -M raspi3 -serial stdio -kernel"
