@@ -17,6 +17,9 @@ dump:
 clean:
 	rm -rf target kernel8 kernel8.img
 
+test:
+	cargo xtest
+
 qemu: kernel8.img
 	qemu-system-aarch64 -M raspi3 -kernel $^ -serial stdio
 

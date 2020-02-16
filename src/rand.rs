@@ -24,3 +24,16 @@ impl Rand {
         return mmio::read(DATA) % (max - min) + min;
     }
 }
+
+#[test_case]
+fn test_rand() {
+    use crate::io::serial;
+
+    serial::writeln("Testing Rand::range(2, 3) > 1");
+
+    let rand = Rand::new();
+    let res = rand.range(2, 3);
+    serial::write("Got: ");
+    serial::write_hex(res.into());
+    assert!(res > 1);
+}

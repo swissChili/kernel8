@@ -6,3 +6,4 @@ rustflags = [
     "-C", "link-arg=-Tlink.ld",
     "-C", "link-arg=target/start.o"
 ]
+runner = "qemu-system-aarch64 -M raspi3 -serial stdio -display none -kernel"

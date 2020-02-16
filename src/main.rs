@@ -1,6 +1,8 @@
 #![no_std]
 #![no_main]
-#![feature(core_intrinsics, lang_items, asm, const_generics)]
+#![feature(core_intrinsics, lang_items, asm, custom_test_frameworks)]
+#![test_runner(crate::test::runner)]
+#![reexport_test_harness_main = "test_main"]
 
 extern crate numtoa;
 
@@ -10,6 +12,7 @@ mod rand;
 mod delay;
 mod fb;
 mod mailbox;
+mod test;
 use io::serial;
 use core::panic::PanicInfo;
 use numtoa::NumToA;
@@ -35,6 +38,12 @@ pub fn get_el() -> u64 {
 
 #[no_mangle]
 pub extern "C" fn main() -> ! {
+    #[cfg(test)]
+    {
+        test_main();
+        loop { }
+    }
+
     serial::writeln("Kernel8");
     let rand = rand::Rand::new();
     let mut buffer: [u8; 4] = [0; 4];

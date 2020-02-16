@@ -121,3 +121,12 @@ pub enum Tag {
     SetClkRate = 0x38002,
     Last = 0,
 }
+
+#[test_case]
+fn test_get_serial() {
+    use crate::io::serial;
+
+    serial::writeln("Testing: get_serial() is Ok");
+
+    assert!(get_serial().is_ok());
+}

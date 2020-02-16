@@ -11,18 +11,59 @@ pub struct FrameBuffer {
     pub is_rgb: u32,
 }
 
+fn cap(num: u32, low: u32, high: u32) -> u32 {
+    if num < low {
+        low
+    } else if num > high {
+        high
+    } else {
+        num
+    }
+}
+
+#[repr(packed)]
+pub struct Color {
+    pub r: u8,
+    pub g: u8,
+    pub b: u8,
+    pub a: u8,
+}
+
+impl Color {
+    pub fn new(r: u8, g: u8, b: u8, a: u8) -> Self {
+        Self {
+            r, g, b, a,
+        }
+    }
+
+    pub fn red() -> Self {
+        return Self::new(255, 0, 0, 255);
+    }
+}
+
+impl Into<u32> for Color {
+    fn into(self) -> u32 {
+        (self.r as u32) << 24
+        | (self.g as u32) << 16
+        | (self.b as u32) << 8
+        | (self.a as u32)
+    }
+}
+
 impl FrameBuffer {
-    fn set_pixel(&self, x: u32, y: u32, color: u32) {
+    fn set_pixel(&self, x: u32, y: u32, color: Color) {
         unsafe {
             *((self.buffer as u64 + (y * self.width + x) as u64)
-                as *mut u32) = color;
+                as *mut u32) = color.into();
         }
     }
 
     pub fn render(&self) {
+        serial::writeln("Is rgb?");
+        serial::write_hex(self.is_rgb.into());
         for x in 0..self.width {
             for y in 0..self.height {
-                self.set_pixel(x, y, 0xff_00_00_00);
+                self.set_pixel(x, y, Color::new(0, 0, 0, 100));
             }
         }
     }
@@ -41,8 +82,7 @@ impl FrameBufferRequest {
     }
 }
 
-impl mailbox::Message for
-FrameBufferRequest {
+impl mailbox::Message for FrameBufferRequest {
     type Ret = FrameBuffer;
 
     fn to_array(&self) -> mailbox::MailBox {
@@ -110,4 +150,15 @@ FrameBufferRequest {
         }
         Err(())
     }
+}
+
+
+#[test_case]
+fn test_get_frame_buffer() {
+    use crate::io::serial;
+    serial::writeln("Testing get FrameBuffer");
+    assert!(
+        FrameBufferRequest::new(1080, 720)
+            .call(mailbox::Channel::Prop)
+            .is_ok());
 }
